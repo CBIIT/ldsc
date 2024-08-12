@@ -12,3 +12,5 @@ COPY . /app/ldsc/
 
 RUN cd ldsc/ \
   && pip install .
+
+CMD ["bash"]
