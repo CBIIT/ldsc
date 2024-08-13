@@ -1,4 +1,4 @@
-name: ldscTest
+name: ldsc
 channels:
   - conda-forge
   - bioconda

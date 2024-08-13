@@ -23,7 +23,7 @@ RUN /opt/conda/bin/conda init bash
 COPY . /app
 
 SHELL ["bash", "-c"]
-RUN echo "source /opt/conda/etc/profile.d/conda.sh && conda activate ldscTest" >> ~/.bashrc
+RUN echo "source /opt/conda/etc/profile.d/conda.sh && conda activate ldsc" >> ~/.bashrc
 
 CMD ["bash"]
 # Command to run your application with the environment activated
