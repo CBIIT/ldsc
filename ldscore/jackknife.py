@@ -12,7 +12,6 @@ of the data.
 
 '''
 
-
 import numpy as np
 from scipy.optimize import nnls
 np.seterr(divide='raise', invalid='raise')
@@ -38,7 +37,7 @@ def _check_shape_block(xty_block_values, xtx_block_values):
     '''Check that xty_block_values and xtx_block_values have correct shapes.'''
     if xtx_block_values.shape[0:2] != xty_block_values.shape:
         raise ValueError(
-            'Shape of xty_block_values must equal shape of first two dimensions of xty_block_values.')
+            'Shape of xty_block_values must equal shape of first two dimensions of xtx_block_values.')
     if len(xtx_block_values.shape) < 3:
         raise ValueError('xtx_block_values must be a 3D array.')
     if xtx_block_values.shape[1] != xtx_block_values.shape[2]:
@@ -100,7 +99,7 @@ class Jackknife(object):
             self.n_blocks = n_blocks
             self.separators = self.get_separators(self.N, self.n_blocks)
         else:
-            raise ValueError('Must specify either n_blocks are separators.')
+            raise ValueError('Must specify either n_blocks or separators.')
 
         if self.n_blocks > self.N:
             raise ValueError('More blocks than data points.')
@@ -112,7 +111,7 @@ class Jackknife(object):
 
         Parameters
         ----------
-        pseudovalues : np.matrix pf floats with shape (n_blocks, p)
+        pseudovalues : np.matrix of floats with shape (n_blocks, p)
 
         Returns
         -------
@@ -148,7 +147,7 @@ class Jackknife(object):
         Returns
         -------
         pseudovalues : np.matrix with shape (n_blocks, p)
-            Psuedovalues.
+            Pseudovalues.
 
         Raises
         ------
@@ -239,7 +238,7 @@ class LstsqJackknifeSlow(Jackknife):
         y : np.matrix with shape (n, 1)
             Dependent variable.
         func : function (n, p) , (n, 1) --> (1, p)
-            Function of x and y to be jackknived.
+            Function of x and y to be jackknifed.
         s : list of ints
             Block separators.
 

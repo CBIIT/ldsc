@@ -1,10 +1,9 @@
 '''
 (c) 2015 Brendan Bulik-Sullivan and Hilary Finucane
 
-Iterativey re-weighted least squares.
+Iteratively re-weighted least squares.
 
 '''
-
 import numpy as np
 from . import jackknife as jk
 

@@ -1,4 +1,4 @@
-
+from __future__ import division
 import numpy as np
 import bitarray as ba
 
@@ -81,8 +81,7 @@ class __GenotypeArrayInMemory__(object):
             if np.any(keep_indivs > self.n):
                 raise ValueError('keep_indivs indices out of bounds')
 
-            (self.geno, self.m, self.n) = self.__filter_indivs__(self.geno, keep_indivs, self.m,
-                self.n)
+            (self.geno, self.m, self.n) = self.__filter_indivs__(self.geno, keep_indivs, self.m, self.n)
 
             if self.n > 0:
                 print('After filtering, {n} individuals remain'.format(n=self.n))
@@ -95,8 +94,7 @@ class __GenotypeArrayInMemory__(object):
             if np.any(keep_snps > self.m):  # if keep_snps is None, this returns False
                 raise ValueError('keep_snps indices out of bounds')
 
-        (self.geno, self.m, self.n, self.kept_snps, self.freq) = self.__filter_snps_maf__(
-            self.geno, self.m, self.n, self.mafMin, keep_snps)
+        (self.geno, self.m, self.n, self.kept_snps, self.freq) = self.__filter_snps_maf__(self.geno, self.m, self.n, self.mafMin, keep_snps)
 
         if self.m > 0:
             print('After filtering, {m} SNPs remain'.format(m=self.m))
@@ -112,10 +110,10 @@ class __GenotypeArrayInMemory__(object):
     def __read__(self, fname, m, n):
         raise NotImplementedError
 
-    def __filter_indivs__(geno, keep_indivs, m, n):
+    def __filter_indivs__(self, geno, keep_indivs, m, n):
         raise NotImplementedError
 
-    def __filter_maf_(geno, m, n, maf):
+    def __filter_maf_(self, geno, m, n, maf):
         raise NotImplementedError
 
     def ldScoreVarBlocks(self, block_left, c, annot=None):

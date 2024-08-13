@@ -5,7 +5,7 @@ This module contains functions for parsing various ldsc-defined file formats.
 
 '''
 
-
+from __future__ import division
 import numpy as np
 import pandas as pd
 import os
@@ -18,7 +18,7 @@ def series_eq(x, y):
 
 
 def read_csv(fh, **kwargs):
-    return pd.read_csv(fh, sep='\s+', na_values='.', **kwargs)
+    return pd.read_csv(fh, delim_whitespace=True, na_values='.', **kwargs)
 
 
 def sub_chr(s, chrom):
@@ -32,7 +32,7 @@ def sub_chr(s, chrom):
 def get_present_chrs(fh, num):
     '''Checks which chromosomes exist, assuming that the file base will be appended by a dot in any suffix.'''
     chrs = []
-    for chrom in range(1,num):
+    for chrom in range(1, num):
         if glob.glob(sub_chr(fh, chrom) + '.*'):
             chrs.append(chrom)
     return chrs
@@ -79,7 +79,7 @@ def read_cts(fh, match_snps):
 
 def sumstats(fh, alleles=False, dropna=True):
     '''Parses .sumstats files. See docs/file_formats_sumstats.txt.'''
-    dtype_dict = {'SNP': str,   'Z': float, 'N': float, 'A1': str, 'A2': str}
+    dtype_dict = {'SNP': str, 'Z': float, 'N': float, 'A1': str, 'A2': str}
     compression = get_compression(fh)
     usecols = ['SNP', 'Z', 'N']
     if alleles:
@@ -98,7 +98,6 @@ def sumstats(fh, alleles=False, dropna=True):
 
 def ldscore_fromlist(flist, num=None):
     '''Sideways concatenation of a list of LD Score files.'''
-
     ldscore_array = []
     for i, fh in enumerate(flist):
         y = ldscore(fh, num)
@@ -153,7 +152,7 @@ def ldscore(fh, num=None):
         s, compression = which_compression(fh + suffix)
         x = l2_parser(fh + suffix + s, compression)
 
-    x = x.sort_values(by=['CHR', 'BP']) # SEs will be wrong unless sorted
+    x = x.sort_values(by=['CHR', 'BP'])  # SEs will be wrong unless sorted
     x = x.drop(['CHR', 'BP'], axis=1).drop_duplicates(subset='SNP')
     return x
 
@@ -188,8 +187,8 @@ def annot(fh_list, num=None, frqfile=None):
     annot_suffix = ['.annot' for fh in fh_list]
     annot_compression = []
     if num is not None:  # 22 files, one for each chromosome
+        chrs = get_present_chrs(fh, num+1)
         for i, fh in enumerate(fh_list):
-            chrs = get_present_chrs(fh, num+1)
             first_fh = sub_chr(fh, chrs[0]) + annot_suffix[i]
             annot_s, annot_comp_single = which_compression(first_fh)
             annot_suffix[i] += annot_s

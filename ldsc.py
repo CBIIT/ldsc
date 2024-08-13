@@ -20,14 +20,13 @@ from itertools import product
 import time, sys, traceback, argparse
 from functools import reduce
 
-
 try:
     x = pd.DataFrame({'A': [1, 2, 3]})
     x.sort_values(by='A')
 except AttributeError:
     raise ImportError('LDSC requires pandas version >= 0.17.0')
 
-__version__ = '2.0.2'
+__version__ = '3.0.1'
 MASTHEAD = "*********************************************************************\n"
 MASTHEAD += "* LD Score Regression (LDSC)\n"
 MASTHEAD += "* Version {V}\n".format(V=__version__)
@@ -38,15 +37,14 @@ MASTHEAD += "*******************************************************************
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
-pd.set_option('display.precision', 4)
-pd.set_option('max_colwidth',1000)
+pd.set_option('display.float_format', '{:.4f}'.format)
+pd.set_option('max_colwidth', 1000)
 np.set_printoptions(linewidth=1000)
 np.set_printoptions(precision=4)
 
-
 def sec_to_str(t):
     '''Convert seconds to days:hours:minutes:seconds'''
-    [d, h, m, s, n] = reduce(lambda ll, b : divmod(ll[0], b) + ll[1:], [(t, 1), 60, 60, 24])
+    [d, h, m, s, n] = reduce(lambda ll, b: divmod(ll[0], b) + ll[1:], [(t, 1), 60, 60, 24])
     f = ''
     if d > 0:
         f += '{D}d:'.format(D=d)
@@ -54,7 +52,6 @@ def sec_to_str(t):
         f += '{H}h:'.format(H=h)
     if m > 0:
         f += '{M}m:'.format(M=m)
-
     f += '{S}s'.format(S=s)
     return f
 
@@ -88,7 +85,7 @@ class Logger(object):
 def __filter__(fname, noun, verb, merge_obj):
     merged_list = None
     if fname:
-        f = lambda x,n: x.format(noun=noun, verb=verb, fname=fname, num=n)
+        f = lambda x, n: x.format(noun=noun, verb=verb, fname=fname, num=n)
         x = ps.FilterFile(fname)
         c = 'Read list of {num} {noun} to {verb} from {fname}'
         print(f(c, len(x.IDList)))
@@ -105,7 +102,7 @@ def __filter__(fname, noun, verb, merge_obj):
 
 def annot_sort_key(s):
     '''For use with --cts-bin. Fixes weird pandas crosstab column order.'''
-    if type(s) == tuple:
+    if isinstance(s, tuple):
         s = [x.split('_')[0] for x in s]
         s = [float(x) if x != 'min' else -float('inf') for x in s]
     else:  # type(s) = str:
@@ -151,7 +148,7 @@ def ldscore(args, log):
                 n_annot, ma = len(annot.df.columns) - 4, len(annot.df)
                 log.log("Read {A} annotations for {M} SNPs from {f}".format(f=args.annot,
                     A=n_annot, M=ma))
-                annot_matrix = np.array(annot.df.iloc[:,4:])
+                annot_matrix = np.array(annot.df.iloc[:, 4:])
                 annot_colnames = annot.df.columns[4:]
                 keep_snps = None
                 if np.any(annot.df.SNP.values != array_snps.df.SNP.values):
@@ -191,7 +188,7 @@ def ldscore(args, log):
 
         cts_levs = []
         full_labs = []
-        for i,fh in enumerate(cts_fnames):
+        for i, fh in enumerate(cts_fnames):
             vec = ps.read_cts(cts_fnames[i], array_snps.df.SNP.values)
 
             max_cts = np.max(vec)
@@ -275,7 +272,7 @@ def ldscore(args, log):
     # filter annot_matrix down to only SNPs passing MAF cutoffs
     if annot_matrix is not None:
         annot_keep = geno_array.kept_snps
-        annot_matrix = annot_matrix[annot_keep,:]
+        annot_matrix = annot_matrix[annot_keep, :]
 
     # determine block widths
     x = np.array((args.ld_wind_snps, args.ld_wind_kb, args.ld_wind_cm), dtype=bool)
@@ -302,7 +299,7 @@ def ldscore(args, log):
     if args.pq_exp is not None:
         log.log('Computing LD with pq ^ {S}.'.format(S=args.pq_exp))
         msg = 'Note that LD Scores with pq raised to a nonzero power are'
-        msg += 'not directly comparable to normal LD Scores.'
+        msg += ' not directly comparable to normal LD Scores.'
         log.log(msg)
         scale_suffix = '_S{S}'.format(S=args.pq_exp)
         pq = np.matrix(geno_array.maf*(1-geno_array.maf)).reshape((geno_array.m, 1))
@@ -315,7 +312,8 @@ def ldscore(args, log):
 
     log.log("Estimating LD Score.")
     lN = geno_array.ldScoreVarBlocks(block_left, args.chunk_size, annot=annot_matrix)
-    col_prefix = "L2"; file_suffix = "l2"
+    col_prefix = "L2"
+    file_suffix = "l2"
 
     if n_annot == 1:
         ldscore_colnames = [col_prefix+scale_suffix]
@@ -336,11 +334,11 @@ def ldscore(args, log):
             print_snps = pd.read_csv(args.print_snps, header=None)
         if len(print_snps.columns) > 1:
             raise ValueError('--print-snps must refer to a file with a one column of SNP IDs.')
-        log.log('Reading list of {N} SNPs for which to print LD Scores from {F}'.format(\
+        log.log('Reading list of {N} SNPs for which to print LD Scores from {F}'.format(
                         F=args.print_snps, N=len(print_snps)))
 
-        print_snps.columns=['SNP']
-        df = df.iloc[df.SNP.isin(print_snps.SNP),:]
+        print_snps.columns = ['SNP']
+        df = df.loc[df.SNP.isin(print_snps.SNP), :]
         if len(df) == 0:
             raise ValueError('After merging with --print-snps, no SNPs remain.')
         else:
@@ -349,26 +347,24 @@ def ldscore(args, log):
 
     l2_suffix = '.gz'
     log.log("Writing LD Scores for {N} SNPs to {f}.gz".format(f=out_fname, N=len(df)))
-    df.drop(['CM','MAF'], axis=1).to_csv(out_fname, sep="\t", header=True, index=False,
+    df.drop(['CM', 'MAF'], axis=1).to_csv(out_fname, sep="\t", header=True, index=False,
         float_format='%.3f')
     call(['gzip', '-f', out_fname])
     if annot_matrix is not None:
         M = np.atleast_1d(np.squeeze(np.asarray(np.sum(annot_matrix, axis=0))))
         ii = geno_array.maf > 0.05
-        M_5_50 = np.atleast_1d(np.squeeze(np.asarray(np.sum(annot_matrix[ii,:], axis=0))))
+        M_5_50 = np.atleast_1d(np.squeeze(np.asarray(np.sum(annot_matrix[ii, :], axis=0))))
     else:
         M = [geno_array.m]
         M_5_50 = [np.sum(geno_array.maf > 0.05)]
 
     # print .M
-    fout_M = open(args.out + '.'+ file_suffix +'.M','wb')
-    print('\t'.join(map(str,M)), file=fout_M)
-    fout_M.close()
+    with open(args.out + '.'+ file_suffix +'.M','w') as fout_M:
+        print('\t'.join(map(str, M)), file=fout_M)
 
     # print .M_5_50
-    fout_M_5_50 = open(args.out + '.'+ file_suffix +'.M_5_50','wb')
-    print('\t'.join(map(str,M_5_50)), file=fout_M_5_50)
-    fout_M_5_50.close()
+    with open(args.out + '.'+ file_suffix +'.M_5_50','w') as fout_M_5_50:
+        print('\t'.join(map(str, M_5_50)), file=fout_M_5_50)
 
     # print annot matrix
     if (args.cts_bin is not None) and not args.no_print_annot:
@@ -384,20 +380,20 @@ def ldscore(args, log):
     # print LD Score summary
     pd.set_option('display.max_rows', 200)
     log.log('\nSummary of LD Scores in {F}'.format(F=out_fname+l2_suffix))
-    t = df.iloc[:,4:].describe()
-    log.log( t.iloc[1:,:] )
+    t = df.iloc[:, 4:].describe()
+    log.log(t.iloc[1:, :])
 
     np.seterr(divide='ignore', invalid='ignore')  # print NaN instead of weird errors
     # print correlation matrix including all LD Scores and sample MAF
     log.log('')
     log.log('MAF/LD Score Correlation Matrix')
-    log.log( df.iloc[:,4:].corr() )
+    log.log(df.iloc[:, 4:].corr())
 
     # print condition number
     if n_annot > 1: # condition number of a column vector w/ nonzero var is trivially one
         log.log('\nLD Score Matrix Condition Number')
-        cond_num = np.linalg.cond(df.iloc[:,5:])
-        log.log( reg.remove_brackets(str(np.matrix(cond_num))) )
+        cond_num = np.linalg.cond(df.iloc[:, 5:])
+        log.log(reg.remove_brackets(str(np.matrix(cond_num))))
         if cond_num > 10000:
             log.log('WARNING: ill-conditioned LD Score Matrix!')
 
@@ -406,7 +402,7 @@ def ldscore(args, log):
         # covariance matrix
         x = pd.DataFrame(annot_matrix, columns=annot_colnames)
         log.log('\nAnnotation Correlation Matrix')
-        log.log( x.corr() )
+        log.log(x.corr())
 
         # column sums
         log.log('\nAnnotation Matrix Column Sums')
@@ -423,7 +419,7 @@ def ldscore(args, log):
 parser = argparse.ArgumentParser()
 parser.add_argument('--out', default='ldsc', type=str,
     help='Output filename prefix. If --out is not set, LDSC will use ldsc as the '
-    'defualt output filename prefix.')
+    'default output filename prefix.')
 # Basic LD Score Estimation Flags'
 parser.add_argument('--bfile', default=None, type=str,
     help='Prefix for Plink .bed/.bim/.fam file')
@@ -483,7 +479,7 @@ parser.add_argument('--pq-exp', default=None, type=float,
     'i.e., \ell_j := \sum_k (p_k(1-p_k))^a r^2_{jk}, where p_k denotes the MAF '
     'of SNP j and a is the argument to --pq-exp. ')
 parser.add_argument('--no-print-annot', default=False, action='store_true',
-    help='By defualt, seting --cts-bin or --cts-bin-add causes LDSC to print '
+    help='By default, setting --cts-bin or --cts-bin-add causes LDSC to print '
     'the resulting annot matrix. Setting --no-print-annot tells LDSC not '
     'to print the annot matrix. ')
 parser.add_argument('--maf', default=None, type=float,
@@ -519,7 +515,7 @@ parser.add_argument('--overlap-annot', default=False, action='store_true',
     help='This flag informs LDSC that the partitioned LD Scores were generates using an '
     'annot matrix with overlapping categories (i.e., not all row sums equal 1), '
     'and prevents LDSC from displaying output that is meaningless with overlapping categories.')
-parser.add_argument('--print-coefficients',default=False,action='store_true',
+parser.add_argument('--print-coefficients', default=False, action='store_true',
     help='when categories are overlapping, print coefficients as well as heritabilities.')
 parser.add_argument('--frqfile', type=str,
     help='For use with --overlap-annot. Provides allele frequencies to prune to common '
@@ -527,13 +523,13 @@ parser.add_argument('--frqfile', type=str,
 parser.add_argument('--frqfile-chr', type=str,
     help='Prefix for --frqfile files split over chromosome.')
 parser.add_argument('--no-intercept', action='store_true',
-    help = 'If used with --h2, this constrains the LD Score regression intercept to equal '
+    help='If used with --h2, this constrains the LD Score regression intercept to equal '
     '1. If used with --rg, this constrains the LD Score regression intercepts for the h2 '
     'estimates to be one and the intercept for the genetic covariance estimate to be zero.')
 parser.add_argument('--intercept-h2', action='store', default=None,
-    help = 'Intercepts for constrained-intercept single-trait LD Score regression.')
+    help='Intercepts for constrained-intercept single-trait LD Score regression.')
 parser.add_argument('--intercept-gencov', action='store', default=None,
-    help = 'Intercepts for constrained-intercept cross-trait LD Score regression.'
+    help='Intercepts for constrained-intercept cross-trait LD Score regression.'
     ' Must have same length as --rg. The first entry is ignored.')
 parser.add_argument('--M', default=None, type=str,
     help='# of SNPs (if you don\'t want to use the .l2.M files that came with your .l2.ldscore.gz files)')
@@ -574,9 +570,9 @@ parser.add_argument('--no-check-alleles', default=False, action='store_true',
     'redundant for pairs of chisq files generated using munge_sumstats.py and the '
     'same argument to the --merge-alleles flag.')
 # transform to liability scale
-parser.add_argument('--samp-prev',default=None,
+parser.add_argument('--samp-prev', default=None,
     help='Sample prevalence of binary phenotype (for conversion to liability scale).')
-parser.add_argument('--pop-prev',default=None,
+parser.add_argument('--pop-prev', default=None,
     help='Population prevalence of binary phenotype (for conversion to liability scale).')
 
 if __name__ == '__main__':
@@ -589,7 +585,7 @@ if __name__ == '__main__':
     try:
         defaults = vars(parser.parse_args(''))
         opts = vars(args)
-        non_defaults = [x for x in list(opts.keys()) if opts[x] != defaults[x]]
+        non_defaults = [x for x in opts.keys() if opts[x] != defaults[x]]
         header = MASTHEAD
         header += "Call: \n"
         header += './ldsc.py \\\n'
@@ -599,7 +595,6 @@ if __name__ == '__main__':
         log.log(header)
         log.log('Beginning analysis at {T}'.format(T=time.ctime()))
         start_time = time.time()
-
         if args.n_blocks <= 1:
             raise ValueError('--n-blocks must be an integer > 1.')
         if args.bfile is not None:
@@ -617,7 +612,6 @@ if __name__ == '__main__':
                 raise ValueError('Cannot set both --per-allele and --pq-exp (--per-allele is equivalent to --pq-exp 1).')
             if args.per_allele:
                 args.pq_exp = 1
-
 
             ldscore(args, log)
         # summary statistics
@@ -654,9 +648,10 @@ if __name__ == '__main__':
             print('ldsc.py -h describes options.')
     except Exception:
         ex_type, ex, tb = sys.exc_info()
-        log.log( traceback.format_exc(ex) )
+        print("############", ex)
+        log.log(traceback.format_exc())
         raise
     finally:
-        log.log('Analysis finished at {T}'.format(T=time.ctime()) )
-        time_elapsed = round(time.time()-start_time,2)
+        log.log('Analysis finished at {T}'.format(T=time.ctime()))
+        time_elapsed = round(time.time()-start_time, 2)
         log.log('Total time elapsed: {T}'.format(T=sec_to_str(time_elapsed)))

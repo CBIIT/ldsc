@@ -1,54 +1,12 @@
 
-# LDSC (LD SCore) `v2.0.2`
+# LDSC (LD SCore) `v1.0.1`
 
 `ldsc` is a command line tool for estimating heritability and genetic correlation from GWAS summary statistics. `ldsc` also computes LD Scores.
 
 ## Getting Started
 
-There are several ways to install ldsc (v2.0.2). Docker and Pip are preferred but the user can also install from the github repository. Each of these ways are explained below:
 
-### Docker/Singularity
 
-ldsc is available as an image on docker and has been built for amd64 and arm64. This image can be pulled using the following command:
-
-```
-docker pull jtb114/ldsc-test
-```
-
-The working directory of this image is "app". There is a subdirectory called "ldsc" that has all the scripts used by ldsc such as "ldsc.py", "munge_sumstats.py", and "make_annot.py". Users can then run this image in interactive mode using the following command:
-
-```
-docker run -it jtb114/ldsc-test
-```
-
-Sometimes in HPC environments, other containerization software is preferred to docker. One option is Singularity. Singularity is able to pull images from Dockerhub so the following command will pull the ldsc image and build a singularity image:
-
-```
-singularity pull docker://jtb114/ldsc-test
-```
-
-This command will create a file called ldsc-test-latest.sif in the directory in which the command is run. Users can then run the singularity image using the following command:
-
-```
-singularity shell ldsc-test-latest.sif
-```
-
-This will open the container in an interactive mode. Users can find the scripts for ldsc in the root directory but running a command such as:
-
-```
-ls /app/ldsc/
-```
-
-### Pip:
-ldsc is also on PYPI and can be installed by Pip using the following command (It is preferable that the program be installed into a virtual environment created using venv or conda):
-
-```
-pip install ldsc
-```
-
-*warning:* The "make_annot.py" script requires that bedtools be installed. There have been issues when running ldsc on an HPC environment when bedtools has not been detect even when loaded/installed. If this error occurs, it is required to use the docker image to run ldsc.
-
-### Github:
 In order to download `ldsc`, you should clone this repository via the commands
 ```  
 git clone https://github.com/bulik/ldsc.git
@@ -71,8 +29,6 @@ Once the above has completed, you can run:
 to print a list of all command-line options. If these commands fail with an error, then something as gone wrong during the installation process. 
 
 Short tutorials describing the four basic functions of `ldsc` (estimating LD Scores, h2 and partitioned h2, genetic correlation, the LD Score regression intercept) can be found in the wiki. If you would like to run the tests, please see the wiki.
-
-*warning:* The "make_annot.py" script requires that bedtools be installed. There have been issues when running ldsc on an HPC environment when bedtools has not been detect even when loaded/installed. If this error occurs, it is required to use the docker image to run ldsc.
 
 ## Updating LDSC
 

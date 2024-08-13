@@ -1,11 +1,4 @@
-'''
-(c) 2014 Brendan Bulik-Sullivan and Hilary Finucane
-
-This module deals with getting all the data needed for LD Score regression from files
-into memory and checking that the input makes sense. There is no math here. LD Score
-regression is implemented in the regressions module.
-'''
-
+from __future__ import division
 import numpy as np
 import pandas as pd
 from scipy import stats
@@ -29,10 +22,10 @@ STRAND_AMBIGUOUS = {''.join(x): x[0] == COMPLEMENT[x[1]]
                     for x in it.product(BASES, BASES)
                     if x[0] != x[1]}
 # SNPS we want to keep (pairs of alleles)
-VALID_SNPS = {x for x in [''.join(y) for y in it.product(BASES, BASES)]
+VALID_SNPS = {x for x in map(lambda y: ''.join(y), it.product(BASES, BASES))
               if x[0] != x[1] and not STRAND_AMBIGUOUS[x]}
 # T iff SNP 1 has the same alleles as SNP 2 (allowing for strand or ref allele flip).
-MATCH_ALLELES = {x for x in [''.join(y) for y in it.product(VALID_SNPS, VALID_SNPS)]
+MATCH_ALLELES = {x for x in map(lambda y: ''.join(y), it.product(VALID_SNPS, VALID_SNPS))
                  # strand and ref match
                  if ((x[0] == x[2]) and (x[1] == x[3])) or
                  # ref match, strand flip
@@ -69,7 +62,7 @@ def smart_merge(x, y):
     '''Check if SNP columns are equal. If so, save time by using concat instead of merge.'''
     if len(x) == len(y) and (x.index == y.index).all() and (x.SNP == y.SNP).all():
         x = x.reset_index(drop=True)
-        y = y.reset_index(drop=True).drop('SNP', axis=1)
+        y = y.reset_index(drop=True).drop('SNP', 1)
         out = pd.concat([x, y], axis=1)
     else:
         out = pd.merge(x, y, how='inner', on='SNP')
@@ -93,7 +86,7 @@ def _read_annot(args, log):
                                                           'annot matrix', ps.annot, frqfile=args.frqfile)
         elif args.ref_ld_chr is not None:
             overlap_matrix, M_tot = _read_chr_split_files(args.ref_ld_chr, args.ref_ld, log,
-                                                      'annot matrix', ps.annot, frqfile=args.frqfile_chr)
+                                                          'annot matrix', ps.annot, frqfile=args.frqfile_chr)
     except Exception:
         log.log('Error parsing .annot file.')
         raise
@@ -142,18 +135,14 @@ def _read_w_ld(args, log):
 
 def _read_chr_split_files(chr_arg, not_chr_arg, log, noun, parsefunc, **kwargs):
     '''Read files split across 22 chromosomes (annot, ref_ld, w_ld).'''
-
     try:
         if not_chr_arg:
             log.log('Reading {N} from {F} ... ({p})'.format(N=noun, F=not_chr_arg, p=parsefunc.__name__))
             out = parsefunc(_splitp(not_chr_arg), **kwargs)
         elif chr_arg:
-
             f = ps.sub_chr(chr_arg, '[1-22]')
             log.log('Reading {N} from {F} ... ({p})'.format(N=noun, F=f, p=parsefunc.__name__))
-
             out = parsefunc(_splitp(chr_arg), _N_CHR, **kwargs)
-
     except ValueError as e:
         log.log('Error parsing {N}.'.format(N=noun))
         raise e
@@ -276,7 +265,7 @@ def cell_type_specific(args, log):
         chisq_max = args.chisq_max
 
     ii = np.ravel(sumstats.Z**2 < chisq_max)
-    sumstats = sumstats.iloc[ii, :]
+    sumstats = sumstats.loc[ii, :]
     log.log('Removed {M} SNPs with chi^2 > {C} ({N} SNPs remain)'.format(
             C=chisq_max, N=np.sum(ii), M=n_snp-np.sum(ii)))
     n_snp = np.sum(ii)  # lambdas are late-binding, so this works
@@ -291,7 +280,7 @@ def cell_type_specific(args, log):
         ref_ld_cts_allsnps = _read_chr_split_files(ct_ld_chr, None, log,
                                    'cts reference panel LD Score', ps.ldscore_fromlist)
         log.log('Performing regression.')
-        ref_ld_cts = np.array(pd.merge(keep_snps, ref_ld_cts_allsnps, on='SNP', how='left').iloc[:,1:])
+        ref_ld_cts = np.array(pd.merge(keep_snps, ref_ld_cts_allsnps, on='SNP', how='left').loc[:,1:])
         if np.any(np.isnan(ref_ld_cts)):
             raise ValueError ('Missing some LD scores from cts files. Are you sure all SNPs in ref-ld-chr are also in ref-ld-chr-cts')
 
@@ -320,8 +309,8 @@ def estimate_h2(args, log):
     '''Estimate h2 and partitioned h2.'''
     args = copy.deepcopy(args)
     if args.samp_prev is not None and args.pop_prev is not None:
-        args.samp_prev, args.pop_prev = list(map(
-            float, [args.samp_prev, args.pop_prev]))
+        args.samp_prev, args.pop_prev = map(
+            float, [args.samp_prev, args.pop_prev])
     if args.intercept_h2 is not None:
         args.intercept_h2 = float(args.intercept_h2)
     if args.no_intercept:
@@ -348,7 +337,7 @@ def estimate_h2(args, log):
     chisq = s(sumstats.Z**2)
     if chisq_max is not None:
         ii = np.ravel(chisq < chisq_max)
-        sumstats = sumstats.iloc[ii, :]
+        sumstats = sumstats.loc[ii, :]
         log.log('Removed {M} SNPs with chi^2 > {C} ({N} SNPs remain)'.format(
                 C=chisq_max, N=np.sum(ii), M=n_snp-np.sum(ii)))
         n_snp = np.sum(ii)  # lambdas are late-binding, so this works
@@ -386,8 +375,8 @@ def estimate_rg(args, log):
     rg_paths, rg_files = _parse_rg(args.rg)
     n_pheno = len(rg_paths)
     f = lambda x: _split_or_none(x, n_pheno)
-    args.intercept_h2, args.intercept_gencov, args.samp_prev, args.pop_prev = list(map(f,
-        (args.intercept_h2, args.intercept_gencov, args.samp_prev, args.pop_prev)))
+    args.intercept_h2, args.intercept_gencov, args.samp_prev, args.pop_prev = map(f,
+        (args.intercept_h2, args.intercept_gencov, args.samp_prev, args.pop_prev))
     list(map(lambda x: _check_arg_len(x, n_pheno), ((args.intercept_h2, '--intercept-h2'),
                                                (args.intercept_gencov, '--intercept-gencov'),
                                                (args.samp_prev, '--samp-prev'),
@@ -462,7 +451,7 @@ def _get_rg_table(rg_paths, RG, args):
     if args.samp_prev is not None and \
             args.pop_prev is not None and \
             all((i is not None for i in args.samp_prev)) and \
-            all((it is not None for it in args.pop_prev)):
+            all((i is not None for it in args.pop_prev)):
 
         c = list(map(lambda x, y: reg.h2_obs_to_liab(1, x, y), args.samp_prev[1:], args.pop_prev[1:]))
         x['h2_liab'] = list(map(lambda x, y: x * y, c, list(map(t('tot'), list(map(t('hsq2'), RG))))))

@@ -1,7 +1,3 @@
-10.4.24 v2.0.2: created a dockerfile so that the pybedtools package could locate bedtools for the make_annot.py script
-09.4.24 v2.0.2: updated a bug where readlines was returning a bytes object instead of a string that broke the list comprehension
-30.01.23 v2.0.1; update a bug introduced in "Fix globbing bug in splitp #221" that broke some flows
-11.10.22 v2.0.0; port to Python 3 and update to newer versions of pandas, numpy, and more
 02.01.20 Fix KeyError in allele_merge
 30.07.19 v1.0.1; update changelog and increment version for edits on this date (see #164)
 30.07.19 Fix to display of liability scale gencov, h2 in rg results log (see #162)
