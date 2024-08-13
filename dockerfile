@@ -1,22 +1,5 @@
-FROM public.ecr.aws/amazonlinux/amazonlinux:2023
-
-# Install necessary packages
-RUN dnf -y update && \
-    dnf -y install \
-    gcc \
-    gzip \
-    mariadb105 \
-    mariadb105-devel \
-    pkgconf \
-    pkgconf-pkg-config \
-    bzip2 \
-    wget \
-    && dnf clean all
-
-# Install Miniconda
-RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /miniconda.sh && \
-    bash /miniconda.sh -b -p /opt/conda && \
-    rm /miniconda.sh
+# Use an appropriate base image
+FROM continuumio/miniconda3
 
 # Add conda to PATH
 ENV PATH=/opt/conda/bin:$PATH
@@ -39,7 +22,9 @@ RUN /opt/conda/bin/conda init bash
 # Copy the rest of your application code to the container
 COPY . /app
 
+SHELL ["bash", "-c"]
+RUN echo "source /opt/conda/etc/profile.d/conda.sh && conda activate ldscTest" >> ~/.bashrc
+
+CMD ["bash"]
 # Command to run your application with the environment activated
-CMD ["bash", "-c", "source /opt/conda/etc/profile.d/conda.sh && conda activate ldscTest && exec bash"]
-
-
+#CMD ["bash", "-c", "source /opt/conda/etc/profile.d/conda.sh && conda activate ldscTest && exec bash"]
