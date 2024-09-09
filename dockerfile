@@ -25,6 +25,10 @@ COPY . /app
 SHELL ["bash", "-c"]
 RUN echo "source /opt/conda/etc/profile.d/conda.sh && conda activate ldsc" >> ~/.bashrc
 
-CMD ["bash"]
+# Expose port 5000
+EXPOSE 5000
+
+# Command to run your application with the environment activated
+CMD ["bash", "-c", "source /opt/conda/etc/profile.d/conda.sh && conda activate ldsc && python /app/app.py"]
 # Command to run your application with the environment activated
 #CMD ["bash", "-c", "source /opt/conda/etc/profile.d/conda.sh && conda activate ldscTest && exec bash"]
