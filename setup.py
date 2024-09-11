@@ -16,6 +16,7 @@ setup(name='ldsc',
       license='GPLv3',
       packages=['ldscore'],
       scripts=['ldsc.py', 'munge_sumstats.py', 'make_annot.py'],
+      py_modules=['ldsc_utils'],  # Add this line to include ldsc_utils.py
       install_requires = [
             'bitarray==2.6.0',
             'nose==1.3.7',
