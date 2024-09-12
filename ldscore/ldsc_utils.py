@@ -28,7 +28,9 @@ def run_ldsc_command(pop, genome_build, filename):
         # Run the command
         # 'cd 1kg_eur && python ../ldsc.py --bfile 22 --l2 --ld-wind-cm 1 --out 22'
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        ldsc_script_path = os.path.join(script_dir,'..', 'ldsc.py')
+        parent_dir = os.path.dirname(script_dir)
+        ldsc_script_path = os.path.join(parent_dir, 'ldsc.py')
+        #print(ldsc_script_path)
         command = f"cd {fileDir} && python3 {ldsc_script_path} --bfile {file_chromo} --l2 --ld-wind-cm 1 --out {file_chromo}"
         result = subprocess.run(
             ['bash', '-c', command],
@@ -39,4 +41,18 @@ def run_ldsc_command(pop, genome_build, filename):
         return result.stdout
     except subprocess.CalledProcessError as e:
         return f"An error occurred: {e.stderr}"
+    
+
+#def main():
+    # Example parameters for testing
+#    pop = 'example_pop'
+#    genome_build = 'example_genome_build'
+#    filename = 'example_filename.22.txt'
+    
+    # Call the function and print the result
+#    result = run_ldsc_command(pop, genome_build, filename)
+#    print(result)
+
+#if __name__ == "__main__":
+#    main()
 
