@@ -28,7 +28,7 @@ def run_ldsc_command(pop, genome_build, filename):
         # Run the command
         # 'cd 1kg_eur && python ../ldsc.py --bfile 22 --l2 --ld-wind-cm 1 --out 22'
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        parent_dir = os.path.dirname(script_dir)
+        parent_dir = '/usr/local/bin/'
         ldsc_script_path = os.path.join(parent_dir, 'ldsc.py')
         #print(ldsc_script_path)
         command = f"cd {fileDir} && python3 {ldsc_script_path} --bfile {file_chromo} --l2 --ld-wind-cm 1 --out {file_chromo}"
