@@ -1,6 +1,7 @@
 import os
 import glob
 import subprocess
+import shutil  
 
 
 
@@ -22,7 +23,8 @@ def run_ldsc_command(pop, genome_build, filename):
             extension = file_path.split('.')[-1]
             new_filename = f"{file_chromo}.{extension}"
             new_file_path = os.path.join(fileDir, new_filename)
-            os.rename(file_path, new_file_path)
+            #os.rename(file_path, new_file_path)
+            shutil.copy(file_path, new_file_path)  # Copy the file instead of renaming it
         
     try:
         # Run the command
