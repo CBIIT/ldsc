@@ -29,12 +29,12 @@ def run_ldsc_command(pop, genome_build, filename,ldwindow,windUnit,isExample,ref
         windFlag = "--ld-wind-kb"
 
     if filename:
-        file_parts = filename.split('.')
-        file_chromo = None
-        for part in file_parts:
-            if part.isdigit() and 1 <= int(part) <= 22:
-                file_chromo = part
-                break
+        #file_parts = filename.split('.')
+        file_chromo = filename
+        # for part in file_parts:
+        #     if part.isdigit() and 1 <= int(part) <= 22:
+        #         file_chromo = part
+        #         break
     
     # if file_chromo:
     #     # Find the file in the directory
