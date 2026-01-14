@@ -1,8 +1,141 @@
 import os
 import glob
 import subprocess
-import shutil  
+import shutil
+import pandas as pd
+import gzip
 
+
+def validSumstats(sumstats_file):
+    """
+    Validate summary statistics file format before processing.
+    
+    Args:
+        sumstats_file: Path to the summary statistics file
+        
+    Returns:
+        dict: Validation result with keys:
+            - 'valid': bool indicating if file is valid
+            - 'errors': list of error messages
+            - 'warnings': list of warning messages
+            - 'columns': list of detected columns
+            - 'mapped_columns': dict of column mappings
+    """
+    result = {
+        'valid': True,
+        'errors': [],
+        'warnings': [],
+        'columns': [],
+        'mapped_columns': {}
+    }
+    
+    # Default column name mappings (from munge_sumstats.py)
+    default_cnames = {
+        'SNP': 'SNP', 'MARKERNAME': 'SNP', 'SNPID': 'SNP', 'RS': 'SNP', 'RSID': 'SNP',
+        'RS_NUMBER': 'SNP', 'RS_NUMBERS': 'SNP',
+        'P': 'P', 'PVALUE': 'P', 'P_VALUE': 'P', 'PVAL': 'P', 'P_VAL': 'P', 'GC_PVALUE': 'P',
+        'A1': 'A1', 'ALLELE1': 'A1', 'ALLELE_1': 'A1', 'EFFECT_ALLELE': 'A1',
+        'REFERENCE_ALLELE': 'A1', 'INC_ALLELE': 'A1', 'EA': 'A1',
+        'A2': 'A2', 'ALLELE2': 'A2', 'ALLELE_2': 'A2', 'OTHER_ALLELE': 'A2',
+        'NON_EFFECT_ALLELE': 'A2', 'DEC_ALLELE': 'A2', 'NEA': 'A2',
+        'N': 'N', 'NCASE': 'N_CAS', 'CASES_N': 'N_CAS', 'N_CASE': 'N_CAS',
+        'N_CASES': 'N_CAS', 'N_CONTROLS': 'N_CON', 'N_CAS': 'N_CAS', 'N_CON': 'N_CON',
+        'NCONTROL': 'N_CON', 'CONTROLS_N': 'N_CON', 'N_CONTROL': 'N_CON',
+        'ZSCORE': 'Z', 'Z-SCORE': 'Z', 'GC_ZSCORE': 'Z', 'Z': 'Z',
+        'OR': 'OR', 'B': 'BETA', 'BETA': 'BETA', 'LOG_ODDS': 'LOG_ODDS',
+        'EFFECTS': 'BETA', 'EFFECT': 'BETA',
+        'INFO': 'INFO',
+        'EAF': 'FRQ', 'FRQ': 'FRQ', 'MAF': 'FRQ', 'FRQ_U': 'FRQ', 'F_U': 'FRQ'
+    }
+    
+    try:
+        # Check if file exists
+        if not os.path.exists(sumstats_file):
+            result['valid'] = False
+            result['errors'].append(f"File not found: {sumstats_file}")
+            return result
+        
+        # Read header
+        try:
+            if sumstats_file.endswith('.gz'):
+                with gzip.open(sumstats_file, 'rt') as f:
+                    header_line = f.readline()
+            else:
+                with open(sumstats_file, 'r') as f:
+                    header_line = f.readline()
+            
+            columns = header_line.strip().split()
+            result['columns'] = columns
+            
+            if len(columns) == 0:
+                result['valid'] = False
+                result['errors'].append("File has no columns in header")
+                return result
+                
+        except Exception as e:
+            result['valid'] = False
+            result['errors'].append(f"Error reading file header: {str(e)}")
+            return result
+        
+        # Map column names (case-insensitive)
+        def clean_header(s):
+            return s.upper().replace('_', '').replace('.', '')
+        
+        for col in columns:
+            clean_col = clean_header(col)
+            if clean_col in default_cnames:
+                result['mapped_columns'][col] = default_cnames[clean_col]
+        
+        # Check for required columns
+        mapped_values = set(result['mapped_columns'].values())
+        
+        # Must have SNP
+        if 'SNP' not in mapped_values:
+            result['valid'] = False
+            result['errors'].append("Missing required column: SNP (variant identifier)")
+        
+        # Must have P
+        if 'P' not in mapped_values:
+            result['valid'] = False
+            result['errors'].append("Missing required column: P (p-value)")
+        
+        # Must have at least one signed statistic (Z, OR, BETA, or LOG_ODDS)
+        signed_stats = {'Z', 'OR', 'BETA', 'LOG_ODDS'}
+        if not any(stat in mapped_values for stat in signed_stats):
+            result['valid'] = False
+            result['errors'].append("Missing signed summary statistic column (need one of: Z, OR, BETA, LOG_ODDS)")
+        
+        # Check for sample size column
+        if 'N' not in mapped_values and 'N_CAS' not in mapped_values and 'N_CON' not in mapped_values:
+            result['warnings'].append("No sample size column found (N, N_CAS, N_CON). You may need to provide --N or --N-cas/--N-con")
+        
+        # Check for allele columns (recommended but not required)
+        if 'A1' not in mapped_values or 'A2' not in mapped_values:
+            result['warnings'].append("Missing allele columns (A1, A2). This is OK for h2 estimation but required for genetic correlation")
+        
+        # Try to read a few rows to validate data types
+        try:
+            if sumstats_file.endswith('.gz'):
+                df_sample = pd.read_csv(sumstats_file, sep=r'\s+', nrows=10, compression='gzip')
+            else:
+                df_sample = pd.read_csv(sumstats_file, sep=r'\s+', nrows=10)
+            
+            # Check if numeric columns are numeric
+            for col in df_sample.columns:
+                if col in result['mapped_columns']:
+                    mapped = result['mapped_columns'][col]
+                    if mapped in ['P', 'N', 'N_CAS', 'N_CON', 'Z', 'OR', 'BETA', 'LOG_ODDS', 'INFO', 'FRQ']:
+                        if not pd.api.types.is_numeric_dtype(df_sample[col]):
+                            result['warnings'].append(f"Column '{col}' (mapped to {mapped}) may not be numeric")
+                            
+        except Exception as e:
+            result['warnings'].append(f"Could not validate data types: {str(e)}")
+        
+    except Exception as e:
+        result['valid'] = False
+        result['errors'].append(f"Unexpected error during validation: {str(e)}")
+    
+    return result
 
 
 def run_ldsc_command(pop, genome_build, filename,ldwindow,windUnit,isExample,reference):
