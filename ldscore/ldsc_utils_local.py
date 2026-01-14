@@ -105,9 +105,10 @@ def validSumstats(sumstats_file):
             result['valid'] = False
             result['errors'].append("Missing signed summary statistic column (need one of: Z, OR, BETA, LOG_ODDS)")
         
-        # Check for sample size column
+        # Check for sample size column - now treated as error
         if 'N' not in mapped_values and 'N_CAS' not in mapped_values and 'N_CON' not in mapped_values:
-            result['warnings'].append("No sample size column found (N, N_CAS, N_CON). You may need to provide --N or --N-cas/--N-con")
+            result['valid'] = False
+            result['errors'].append("No sample size column found (N, N_CAS, N_CON). You must provide --N or --N-cas/--N-con")
         
         # Check for allele columns (recommended but not required)
         if 'A1' not in mapped_values or 'A2' not in mapped_values:
@@ -120,13 +121,14 @@ def validSumstats(sumstats_file):
             else:
                 df_sample = pd.read_csv(sumstats_file, sep=r'\s+', nrows=10)
             
-            # Check if numeric columns are numeric
+            # Check if numeric columns are numeric - now treated as error
             for col in df_sample.columns:
                 if col in result['mapped_columns']:
                     mapped = result['mapped_columns'][col]
                     if mapped in ['P', 'N', 'N_CAS', 'N_CON', 'Z', 'OR', 'BETA', 'LOG_ODDS', 'INFO', 'FRQ']:
                         if not pd.api.types.is_numeric_dtype(df_sample[col]):
-                            result['warnings'].append(f"Column '{col}' (mapped to {mapped}) may not be numeric")
+                            result['valid'] = False
+                            result['errors'].append(f"Column '{col}' (mapped to {mapped}) must be numeric")
                             
         except Exception as e:
             result['warnings'].append(f"Could not validate data types: {str(e)}")
@@ -353,14 +355,14 @@ if __name__ == "__main__":
     user_input_sumstats = os.path.abspath('../testData/sample/BBJ_HDLC22_wrong.txt')  # Replace with actual user input
     user_input_sumstats2 = os.path.abspath('../testData/sample/BBJ_HDLC22_wrong2.txt')  # Replace with actual user input
     result = validSumstats(user_input_sumstats)
-    print("Validation result for first summary statistics file:")
+    print(user_input_sumstats)
     print({'valid': result['valid'], 'errors': result['errors'], 'warnings': result['warnings']})
     result2 = validSumstats(user_input_sumstats2)
     print("Validation result for second summary statistics file:")
     print({'valid': result2['valid'], 'errors': result2['errors'], 'warnings': result2['warnings']})
 
     user_input_ld_scores = os.path.abspath('../testData/afr/')  # Replace with actual user input
-    #combined_output = run_herit_command(user_input_sumstats, user_input_ld_scores, False)
+    #combined_output = run_herit_command(user_input_sumstats2, user_input_ld_scores, False)
     # combined_output = run_correlation_command(user_input_sumstats, user_input_sumstats2,user_input_ld_scores, True)
    
     print("Combined output:")
