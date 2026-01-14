@@ -453,7 +453,7 @@ def _get_rg_table(rg_paths, RG, args):
     if args.samp_prev is not None and \
             args.pop_prev is not None and \
             all((i is not None for i in args.samp_prev)) and \
-            all((i is not None for it in args.pop_prev)):
+            all((it is not None for it in args.pop_prev)):
 
         c = list(map(lambda x, y: reg.h2_obs_to_liab(1, x, y), args.samp_prev[1:], args.pop_prev[1:]))
         x['h2_liab'] = list(map(lambda x, y: x * y, c, list(map(t('tot'), list(map(t('hsq2'), RG))))))
