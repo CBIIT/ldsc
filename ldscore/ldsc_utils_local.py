@@ -4,6 +4,11 @@ import subprocess
 import shutil
 import pandas as pd
 import gzip
+import sys
+# Add parent directory to path to import ldscore modules
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from ldscore import parse as ps
+from ldscore import ldscore as ld
 
 
 def validSumstats(sumstats_file):
@@ -132,6 +137,164 @@ def validSumstats(sumstats_file):
                             
         except Exception as e:
             result['warnings'].append(f"Could not validate data types: {str(e)}")
+        
+    except Exception as e:
+        result['valid'] = False
+        result['errors'].append(f"Unexpected error during validation: {str(e)}")
+    
+    return result
+
+
+def validBfile(bfile_prefix):
+    """
+    Validate PLINK bfile format (.bed/.bim/.fam) before processing.
+    
+    Args:
+        bfile_prefix: Path prefix for PLINK files (without extension)
+        
+    Returns:
+        dict: Validation result with keys:
+            - 'valid': bool indicating if files are valid
+            - 'errors': list of error messages
+            - 'warnings': list of warning messages
+            - 'n_snps': number of SNPs in .bim file (if valid)
+            - 'n_samples': number of samples in .fam file (if valid)
+    """
+    result = {
+        'valid': True,
+        'errors': [],
+        'warnings': [],
+        'n_snps': None,
+        'n_samples': None
+    }
+    
+    try:
+        # Define file paths
+        bim_file = bfile_prefix + '.bim'
+        fam_file = bfile_prefix + '.fam'
+        bed_file = bfile_prefix + '.bed'
+        
+        # Check if all three files exist
+        missing_files = []
+        if not os.path.exists(bim_file):
+            missing_files.append(f"{bim_file} (.bim file)")
+        if not os.path.exists(fam_file):
+            missing_files.append(f"{fam_file} (.fam file)")
+        if not os.path.exists(bed_file):
+            missing_files.append(f"{bed_file} (.bed file)")
+        
+        if missing_files:
+            result['valid'] = False
+            result['errors'].append(f"Missing required files: {', '.join(missing_files)}")
+            return result
+        
+        # Validate .bim file
+        try:
+            # Check if first row might be a header by comparing data patterns with second row
+            with open(bim_file, 'r') as f:
+                lines = [f.readline().strip() for _ in range(2)]
+                if len(lines) >= 2 and lines[0] and lines[1]:
+                    row1_parts = lines[0].split()
+                    row2_parts = lines[1].split()
+                    
+                    # .bim files have 6 columns: CHR SNP CM BP A1 A2
+                    if len(row1_parts) >= 1 and len(row2_parts) >= 1:
+                        # Compare column 1 (CHR) - should be numeric (1-22) or 'X', 'Y', 'MT'
+                        chr1 = row1_parts[0]
+                        chr2 = row2_parts[0]
+                        
+                        # Heuristic: Row 1 is likely a header if:
+                        # - CHR column is alphabetic (like "CHR", "CHROM", "chromosome")
+                        # - Row 2 CHR is numeric or valid chromosome value
+                        is_row1_alpha = chr1.isalpha() and chr1.upper() not in ['X', 'Y', 'MT', 'XY', 'PAR1', 'PAR2']
+                        is_row2_valid_chr = chr2.isdigit() or chr2.upper() in ['X', 'Y', 'MT', 'XY', 'PAR1', 'PAR2']
+                        
+                        if is_row1_alpha and is_row2_valid_chr:
+                            result['warnings'].append(
+                                f"BIM file appears to have a header. Column 1 (CHR) has '{chr1}' (looks like header) "
+                                f"while second row has '{chr2}' (looks like data). "
+                                f"PLINK .bim files should not have headers. "
+                                f"The header will be treated as a variant, which may cause incorrect results."
+                            )
+            
+            bim = ps.PlinkBIMFile(bim_file)
+            result['n_snps'] = bim.n
+        except ValueError as e:
+            result['valid'] = False
+            result['errors'].append(f"Invalid .bim file: {str(e)}")
+        except Exception as e:
+            result['valid'] = False
+            result['errors'].append(f"Error reading .bim file: {str(e)}")
+        
+        # Validate .fam file
+        try:
+            # Check if first row might be a header by comparing data patterns with second row
+            with open(fam_file, 'r') as f:
+                lines = [f.readline().strip() for _ in range(2)]
+                if len(lines) >= 2 and lines[0] and lines[1]:
+                    row1_parts = lines[0].split()
+                    row2_parts = lines[1].split()
+                    
+                    # Only check if both rows have at least 2 columns
+                    if len(row1_parts) >= 2 and len(row2_parts) >= 2:
+                        # Compare column 2 (IID) - LDSC only uses this column
+                        iid1 = row1_parts[1]
+                        iid2 = row2_parts[1]
+                        
+                        # Heuristic: Row 1 is likely a header if:
+                        # - It's purely alphabetic (like "IID", "ID", "SAMPLE")
+                        # - Row 2 contains digits or special chars (like "id1", "sample_001", "HG00096")
+                        is_row1_alpha_only = iid1.isalpha()
+                        is_row2_has_digits = any(c.isdigit() for c in iid2) or '_' in iid2 or '-' in iid2
+                        
+                        if is_row1_alpha_only and is_row2_has_digits:
+                            result['warnings'].append(
+                                f"First row appears to be a header. Column 2 (IID) has '{iid1}' (alphabetic only) "
+                                f"while second row has '{iid2}' (contains digits/special chars). "
+                                f"PLINK .fam files should not have headers. "
+                                f"The header will be treated as a sample, which may cause incorrect results."
+                            )
+            
+            # LDSC only reads column 2 (IID) with usecols=[1]
+            fam = ps.PlinkFAMFile(fam_file)
+            result['n_samples'] = fam.n
+        except ValueError as e:
+            result['valid'] = False
+            result['errors'].append(f"Invalid .fam file: {str(e)}")
+        except Exception as e:
+            result['valid'] = False
+            result['errors'].append(f"Error reading .fam file: {str(e)}")
+        
+        # Validate .bed file (only if .bim and .fam are valid)
+        if result['n_snps'] is not None and result['n_samples'] is not None:
+            try:
+                bed = ld.PlinkBEDFile(bed_file, result['n_samples'], bim)
+                # If we get here, the bed file is valid
+                if bed.m == 0:
+                    result['warnings'].append("No polymorphic SNPs remain after MAF filtering")
+                elif bed.m < result['n_snps']:
+                    result['warnings'].append(f"Only {bed.m} of {result['n_snps']} SNPs are polymorphic (monomorphic SNPs removed)")
+            except IOError as e:
+                result['valid'] = False
+                if "Magic number" in str(e):
+                    result['errors'].append(f"Invalid .bed file: Magic number not recognized. File may be corrupted or not a valid PLINK .bed file")
+                elif "SNP-major mode" in str(e):
+                    result['errors'].append(f"Invalid .bed file: Must be in SNP-major mode (default PLINK format)")
+                elif "bits, expected" in str(e):
+                    # Extract the actual and expected bit counts from the error message
+                    result['errors'].append(
+                        f"File size mismatch: .bed file size doesn't match .bim/.fam files. "
+                        f"This usually indicates inconsistent files or corrupted .fam file. "
+                        f"Expected {result['n_samples']} samples from .fam file, but .bed file size suggests a different number. {str(e)}"
+                    )
+                else:
+                    result['errors'].append(f"Invalid .bed file: {str(e)}")
+            except ValueError as e:
+                result['valid'] = False
+                result['errors'].append(f"Invalid .bed file: {str(e)}")
+            except Exception as e:
+                result['valid'] = False
+                result['errors'].append(f"Error reading .bed file: {str(e)}")
         
     except Exception as e:
         result['valid'] = False
@@ -352,18 +515,32 @@ def run_correlation_command(sumstats_file,sumstats_file2, ld_scores_dir, isExamp
 # python ldsc_utils_local.py
 if __name__ == "__main__":
     print("Current working directory:", os.getcwd())
-    user_input_sumstats = os.path.abspath('../testData/sample/BBJ_HDLC22_wrong.txt')  # Replace with actual user input
-    user_input_sumstats2 = os.path.abspath('../testData/sample/BBJ_HDLC22_wrong2.txt')  # Replace with actual user input
-    result = validSumstats(user_input_sumstats)
-    print(user_input_sumstats)
-    print({'valid': result['valid'], 'errors': result['errors'], 'warnings': result['warnings']})
-    result2 = validSumstats(user_input_sumstats2)
-    print("Validation result for second summary statistics file:")
-    print({'valid': result2['valid'], 'errors': result2['errors'], 'warnings': result2['warnings']})
+    
+    # Test validSumstats
+    print("\n=== Testing validSumstats ===")
+    user_input_sumstats = os.path.abspath('../testData/sample/BBJ_HDLC22_wrong.txt')
+    user_input_sumstats2 = os.path.abspath('../testData/sample/BBJ_HDLC22_wrong2.txt')
+    #result = validSumstats(user_input_sumstats)
+    #print(user_input_sumstats)
+    #print({'valid': result['valid'], 'errors': result['errors'], 'warnings': result['warnings']})
+    #result2 = validSumstats(user_input_sumstats2)
+    #print("Validation result for second summary statistics file:")
+    #print({'valid': result2['valid'], 'errors': result2['errors'], 'warnings': result2['warnings']})
 
-    user_input_ld_scores = os.path.abspath('../testData/afr/')  # Replace with actual user input
+    # Test validBfile
+    print("\n=== Testing validBfile ===")
+    #bfile_prefix = os.path.abspath('../1kg_eur/1000G.EUR.QC.20')
+    bfile_prefix = os.path.abspath('../1kg_eur/temp/22_wrong')
+    bfile_result = validBfile(bfile_prefix)
+    print(f"Validating: {bfile_prefix}")
+    print({'valid': bfile_result['valid'], 'errors': bfile_result['errors'], 'warnings': bfile_result['warnings'], 
+           'n_snps': bfile_result['n_snps'], 'n_samples': bfile_result['n_samples']})
+
+    user_input_ld_scores = os.path.abspath('../testData/afr/')
     #combined_output = run_herit_command(user_input_sumstats2, user_input_ld_scores, False)
     # combined_output = run_correlation_command(user_input_sumstats, user_input_sumstats2,user_input_ld_scores, True)
    
+    
+
     print("Combined output:")
     #print(combined_output)
