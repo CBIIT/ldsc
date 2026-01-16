@@ -216,6 +216,24 @@ def validBfile(bfile_prefix):
             
             bim = ps.PlinkBIMFile(bim_file)
             result['n_snps'] = bim.n
+            
+            # Validate that numeric columns contain numeric values
+            # CHR (column 0), CM (column 2), BP (column 3) should be numeric
+            if 'CM' in bim.df.columns:
+                if not pd.api.types.is_numeric_dtype(bim.df['CM']):
+                    result['valid'] = False
+                    result['errors'].append(
+                        f"Column 'CM' (centimorgan) in .bim file must contain numeric values. "
+                        f"Found non-numeric data which will cause errors during LD score calculation."
+                    )
+            
+            if 'BP' in bim.df.columns:
+                if not pd.api.types.is_numeric_dtype(bim.df['BP']):
+                    result['valid'] = False
+                    result['errors'].append(
+                        f"Column 'BP' (base pair position) in .bim file must contain numeric values. "
+                        f"Found non-numeric data."
+                    )
         except ValueError as e:
             result['valid'] = False
             result['errors'].append(f"Invalid .bim file: {str(e)}")
