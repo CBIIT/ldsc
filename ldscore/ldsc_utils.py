@@ -454,8 +454,13 @@ def run_herit_command(sumstats_file, fileDir, ld_scores_dir,isExample):
             separator = "\n--------\n"
             return result1.stdout + separator + result2.stdout
         except subprocess.CalledProcessError as e:
-            print(f"An error occurred while running the second command: {e}")
-            return f"{result1.stdout} An error occurred while running the second command: {e.stderr}"
+            error_details = (e.stderr or e.stdout or e.output or str(e)).strip()
+            print(f"An error occurred while running the second command: {command2}")
+            print(f"Second command exit code: {e.returncode}")
+            print(f"Command stdout: {e.stdout}")
+            print(f"Command stderr: {e.stderr}")
+            separator = "\n--------\n"
+            return f"{result1.stdout}{separator}Second command failed (exit {e.returncode}).\n{error_details}"
 
         # command2 = [
         #     'python', '../ldsc.py',
@@ -472,10 +477,11 @@ def run_herit_command(sumstats_file, fileDir, ld_scores_dir,isExample):
         #print("Second command error (if any):", result2.stderr)
 
     except subprocess.CalledProcessError as e:
+        error_details = (e.stderr or e.stdout or e.output or str(e)).strip()
         print(f"An error occurred while running the command: {e}")
         print(f"Command output: {e.output}")
         print(f"Command stderr: {e.stderr}")
-        return f"An error occurred while running the command: {e.stderr}"
+        return f"An error occurred while running the command (exit {e.returncode}): {error_details}"
 
 def run_correlation_command(sumstats_file, sumstats_file2, fileDir, ld_scores_dir,isExample):
     fallExampleDir = f"/data/ldscore"
@@ -533,13 +539,19 @@ def run_correlation_command(sumstats_file, sumstats_file2, fileDir, ld_scores_di
             return result1.stdout + separator + result12.stdout + separator + result2.stdout
             #return result2.stdout
         except subprocess.CalledProcessError as e:
-            print(f"An error occurred while running the second command: {e}")        
-            print(f"Command stderr: {e}")
-            return f"An error occurred while running the second command: {e}"
+            error_details = (e.stderr or e.stdout or e.output or str(e)).strip()
+            print(f"An error occurred while running the second command: {command2}")
+            print(f"Second command exit code: {e.returncode}")
+            print(f"Command stdout: {e.stdout}")
+            print(f"Command stderr: {e.stderr}")
+            return f"An error occurred while running the second command (exit {e.returncode}): {error_details}"
 
     except subprocess.CalledProcessError as e:
+        error_details = (e.stderr or e.stdout or e.output or str(e)).strip()
         print(f"An error occurred while running the command: {e}")
-        return f"An error occurred while running the command: {e}"
+        print(f"Command stdout: {e.stdout}")
+        print(f"Command stderr: {e.stderr}")
+        return f"An error occurred while running the command (exit {e.returncode}): {error_details}"
 
 
 # Example usage
