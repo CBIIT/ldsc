@@ -371,13 +371,18 @@ def run_ldsc_command(pop, genome_build, filename,ldwindow,windUnit,isExample,ref
         parent_dir = '/usr/local/bin/'
         ldsc_script_path = os.path.join(parent_dir, 'ldsc.py')
         print(fileDir)
-        command = f"cd {fileDir} && python3 {ldsc_script_path} --bfile {file_chr} --l2 {windFlag} {ldwindow_value}  --out {file_chromo}"
-        result = subprocess.run(
-            ['bash', '-c', command],
-            check=True,
-            capture_output=True,
-            text=True
-        )
+        command = [
+            'python3',
+            ldsc_script_path,
+            '--bfile',
+            file_chr,
+            '--l2',
+            windFlag,
+            str(ldwindow_value),
+            '--out',
+            file_chromo,
+        ]
+        result = subprocess.run(command, cwd=fileDir, check=True, capture_output=True, text=True)
         return result.stdout
     except subprocess.CalledProcessError as e:
         return f"An error occurred: {e.stderr}"
@@ -396,7 +401,7 @@ def run_ldsc_command(pop, genome_build, filename,ldwindow,windUnit,isExample,ref
 #if __name__ == "__main__":
 #    main()
 
-def run_herit_command(sumstats_file, fileDir, ld_scores_dir,isExample):
+def run_herit_command(sumstats_file, fileDir, ld_scores_dir, isExample, scale='observed', samp_prev='', pop_prev=''):
     fallExampleDir = f"/data/ldscore"
     w_hm3_snplist = f"/data/ldscore/w_hm3.snplist"
     if isinstance(isExample, str):
@@ -422,11 +427,20 @@ def run_herit_command(sumstats_file, fileDir, ld_scores_dir,isExample):
         if not ld_scores_dir.endswith('/'):
             ld_scores_dir += '/'
         # First command
-        command1 = f"cd {fileDir} && python3 {munge_sumstat_script_path} --sumstats {sumstats_path} --merge-alleles {w_hm3_snplist}  --out {base_name}"
+        command1 = [
+            'python3',
+            munge_sumstat_script_path,
+            '--sumstats',
+            sumstats_path,
+            '--merge-alleles',
+            w_hm3_snplist,
+            '--out',
+            base_name,
+        ]
         
         #command1 = f"python ../munge_sumstats.py --sumstats {sumstats_path} --merge-alleles ../testData/w_hm3.snplist  --out {base_name}"
       
-        result1 = subprocess.run( ['bash', '-c', command1], check=True, capture_output=True, text=True)
+        result1 = subprocess.run(command1, cwd=fileDir, check=True, capture_output=True, text=True)
        
         # command1 = [
         #     'python', '../munge_sumstats.py',
@@ -445,11 +459,23 @@ def run_herit_command(sumstats_file, fileDir, ld_scores_dir,isExample):
         # Second command
         ldsc_script_path = os.path.join(parent_dir, 'ldsc.py')
         print("Second command ################:",ld_scores_dir)
-        command2 = f"cd {fileDir} && python3 {ldsc_script_path} --h2 {out_file} --ref-ld-chr {ld_scores_dir} --w-ld-chr {ld_scores_dir} --out {base_name}"
+        command2 = [
+            'python3',
+            ldsc_script_path,
+            '--h2',
+            out_file,
+            '--ref-ld-chr',
+            ld_scores_dir,
+            '--w-ld-chr',
+            ld_scores_dir,
+            '--out',
+            base_name,
+        ]
+        if str(scale).lower() == 'liability' and str(samp_prev).strip() and str(pop_prev).strip():
+            command2.extend(['--samp-prev', str(samp_prev), '--pop-prev', str(pop_prev)])
        
-        #result2 = subprocess.run( ['bash', '-c', command2], check=True, capture_output=True, text=True)
         try:
-            result2 = subprocess.run(['bash', '-c', command2], check=True, capture_output=True, text=True)
+            result2 = subprocess.run(command2, cwd=fileDir, check=True, capture_output=True, text=True)
             print("Second command output:", result2.stdout, result2.stderr)
             separator = "\n--------\n"
             return result1.stdout + separator + result2.stdout
@@ -483,7 +509,7 @@ def run_herit_command(sumstats_file, fileDir, ld_scores_dir,isExample):
         print(f"Command stderr: {e.stderr}")
         return f"An error occurred while running the command (exit {e.returncode}): {error_details}"
 
-def run_correlation_command(sumstats_file, sumstats_file2, fileDir, ld_scores_dir,isExample):
+def run_correlation_command(sumstats_file, sumstats_file2, fileDir, ld_scores_dir, isExample, scale='observed', samp_prev='', pop_prev=''):
     fallExampleDir = f"/data/ldscore"
     w_hm3_snplist = f"/data/ldscore/w_hm3.snplist"
     if isinstance(isExample, str):
@@ -513,13 +539,31 @@ def run_correlation_command(sumstats_file, sumstats_file2, fileDir, ld_scores_di
         if not ld_scores_dir.endswith('/'):
             ld_scores_dir += '/'
         # First command
-        command1 = f"cd {fileDir} && python3 {munge_sumstat_script_path} --sumstats {sumstats_path} --merge-alleles {w_hm3_snplist}  --out {base_name}"
-        command12 = f"cd {fileDir} && python3 {munge_sumstat_script_path} --sumstats {sumstats_path2} --merge-alleles {w_hm3_snplist}  --out {base_name2}"
+        command1 = [
+            'python3',
+            munge_sumstat_script_path,
+            '--sumstats',
+            sumstats_path,
+            '--merge-alleles',
+            w_hm3_snplist,
+            '--out',
+            base_name,
+        ]
+        command12 = [
+            'python3',
+            munge_sumstat_script_path,
+            '--sumstats',
+            sumstats_path2,
+            '--merge-alleles',
+            w_hm3_snplist,
+            '--out',
+            base_name2,
+        ]
         
         #command1 = f"python ../munge_sumstats.py --sumstats {sumstats_path} --merge-alleles ../testData/w_hm3.snplist  --out {base_name}"
       
-        result1 = subprocess.run( ['bash', '-c', command1], check=True, capture_output=True, text=True)
-        result12 = subprocess.run( ['bash', '-c', command12], check=True, capture_output=True, text=True)
+        result1 = subprocess.run(command1, cwd=fileDir, check=True, capture_output=True, text=True)
+        result12 = subprocess.run(command12, cwd=fileDir, check=True, capture_output=True, text=True)
       
         print("First command output:", result1.stdout)
         print("First command output:", result12.stdout)
@@ -528,12 +572,23 @@ def run_correlation_command(sumstats_file, sumstats_file2, fileDir, ld_scores_di
         # Second command
         ldsc_script_path = os.path.join(parent_dir, 'ldsc.py')
         print("Second command ################:",ld_scores_dir)
-        command2 = f"cd {fileDir} && python3 {ldsc_script_path} --rg {out_file},{out_file2} --ref-ld-chr {ld_scores_dir} --w-ld-chr {ld_scores_dir} --out {base_name}"
+        command2 = [
+            'python3',
+            ldsc_script_path,
+            '--rg',
+            f'{out_file},{out_file2}',
+            '--ref-ld-chr',
+            ld_scores_dir,
+            '--w-ld-chr',
+            ld_scores_dir,
+            '--out',
+            base_name,
+        ]
+        if str(scale).lower() == 'liability' and str(samp_prev).strip() and str(pop_prev).strip():
+            command2.extend(['--samp-prev', str(samp_prev), '--pop-prev', str(pop_prev)])
        
-        #result2 = subprocess.run( ['bash', '-c', command2], check=True, capture_output=True, text=True)
-
         try:
-            result2 = subprocess.run(['bash', '-c', command2], check=True, capture_output=True, text=True)
+            result2 = subprocess.run(command2, cwd=fileDir, check=True, capture_output=True, text=True)
             print("Second command output:", result2.stdout)
             separator = "\n--------\n"
             return result1.stdout + separator + result12.stdout + separator + result2.stdout
