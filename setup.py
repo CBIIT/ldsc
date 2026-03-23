@@ -40,13 +40,13 @@ setup(name='ldsc',
       install_requires = [
             'bitarray==2.6.0',
             'nose==1.3.7',
-            'numpy==1.23.3',
-            'pandas==1.5.0',
-            'pybedtools==0.9.1',
-            'pysam==0.19.1',
+            'numpy==2.4.3',
+            'pandas==2.3.3',
+            'pybedtools',
+            'pysam==0.23.3',
             'python-dateutil==2.8.2',
             'pytz==2022.4',
-            'scipy==1.9.2',
+            'scipy==1.15.0',
             'six==1.16.0'
       ]
 )

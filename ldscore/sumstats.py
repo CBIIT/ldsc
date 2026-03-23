@@ -415,7 +415,7 @@ def estimate_rg(args, log):
             msg = 'ERROR computing rg for phenotype {I}/{N}, from file {F}.'
             log.log(msg.format(I=i + 2, N=len(rg_paths), F=rg_paths[i + 1]))
             ex_type, ex, tb = sys.exc_info()
-            log.log(traceback.format_exc(ex) + '\n')
+            log.log(traceback.format_exc() + '\n')
             if len(RG) <= i:  # if exception raised before appending to RG
                 RG.append(None)
 
