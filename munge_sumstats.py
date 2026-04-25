@@ -149,10 +149,10 @@ def get_compression(fh):
     '''
     if fh.endswith('gz'):
         compression = 'gzip'
-        openfunc = gzip.open
+        openfunc = lambda f: gzip.open(f, 'rt')
     elif fh.endswith('bz2'):
         compression = 'bz2'
-        openfunc = bz2.open
+        openfunc = lambda f: bz2.open(f, 'rt')
     else:
         openfunc = open
         compression = None
