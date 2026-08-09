@@ -122,7 +122,7 @@ numeric_cols = ['P', 'N', 'N_CAS', 'N_CON', 'Z', 'OR', 'BETA', 'LOG_ODDS', 'INFO
 def read_header(fh):
     '''Read the first line of a file and returns a list with the column names.'''
     (openfunc, compression) = get_compression(fh)
-    return [x.rstrip('\n') for x in openfunc(fh).readline().split()]
+    return [x.rstrip('\n') for x in openfunc(fh, 'rt').readline().split()]
 
 def get_cname_map(flag, default, ignore):
     '''
