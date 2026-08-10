@@ -83,6 +83,12 @@ def test_read_annot():
     assert_array_equal(overlap_matrix, [[1, 0, 0], [0, 1, 1], [0, 1, 1]])
     assert_array_equal(M_tot, 2)
 
+    ref_ld_chr = os.path.join(DIR, 'annot_test/test_split')
+    overlap_matrix, M_tot = s._read_chr_split_files(ref_ld_chr, None, log, 'annot matrix',
+                                                    ps.annot, frqfile=None)
+    assert_array_equal(overlap_matrix, [[2, 0], [0, 2]])
+    assert_array_equal(M_tot, 4)
+
 
 def test_valid_snps():
     x = {'AC', 'AG', 'CA', 'CT', 'GA', 'GT', 'TC', 'TG'}

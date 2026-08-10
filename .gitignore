@@ -66,6 +66,7 @@ docs/_build/
 *.ldscore
 *.M
 *.annot
+!test/annot_test/test_split*.annot
 *.chisq
 *.betaprod
 *.keep
