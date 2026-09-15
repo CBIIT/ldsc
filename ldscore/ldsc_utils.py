@@ -404,6 +404,8 @@ def run_ldsc_command(pop, genome_build, filename,ldwindow,windUnit,isExample,ref
 def run_herit_command(sumstats_file, fileDir, ld_scores_dir, isExample, scale='observed', samp_prev='', pop_prev=''):
     fallExampleDir = f"/data/ldscore"
     w_hm3_snplist = f"/data/ldscore/w_hm3.snplist"
+    custom_ld_scores_root = os.environ.get("LDSC_CUSTOM_REFERENCE_DIR", "/data/tmp/ldscore")
+
     if isinstance(isExample, str):
         isExample = isExample.lower() == 'true'
     errormsg = ""
@@ -422,10 +424,10 @@ def run_herit_command(sumstats_file, fileDir, ld_scores_dir, isExample, scale='o
         print("First command ################:",sumstats_path, isExample)
                 # Ensure ld_scores_dir is in lowercase
         ld_scores_dir = ld_scores_dir.lower()
-        ld_scores_dir = fallExampleDir+"/"+ld_scores_dir
-        # Ensure ld_scores_dir has a trailing slash
-        if not ld_scores_dir.endswith('/'):
-            ld_scores_dir += '/'
+        if ld_scores_dir.startswith("custom_"):
+            ld_scores_dir = custom_ld_scores_root + "/" + ld_scores_dir   # writable tmp, per-run custom LD scores
+        else:
+            ld_scores_dir = fallExampleDir + "/" + ld_scores_dir   
         # First command
         command1 = [
             'python3',
@@ -512,6 +514,9 @@ def run_herit_command(sumstats_file, fileDir, ld_scores_dir, isExample, scale='o
 def run_correlation_command(sumstats_file, sumstats_file2, fileDir, ld_scores_dir, isExample, scale='observed', samp_prev='', pop_prev=''):
     fallExampleDir = f"/data/ldscore"
     w_hm3_snplist = f"/data/ldscore/w_hm3.snplist"
+    custom_ld_scores_root = os.environ.get("LDSC_CUSTOM_REFERENCE_DIR", "/data/tmp/ldscore")
+    
+     
     if isinstance(isExample, str):
         isExample = isExample.lower() == 'true'
     errormsg = ""
@@ -534,10 +539,10 @@ def run_correlation_command(sumstats_file, sumstats_file2, fileDir, ld_scores_di
         print("First command ################:",sumstats_path, isExample)
                 # Ensure ld_scores_dir is in lowercase
         ld_scores_dir = ld_scores_dir.lower()
-        ld_scores_dir = fallExampleDir+"/"+ld_scores_dir
-        # Ensure ld_scores_dir has a trailing slash
-        if not ld_scores_dir.endswith('/'):
-            ld_scores_dir += '/'
+        if ld_scores_dir.startswith("custom_"):
+            ld_scores_dir = custom_ld_scores_root + "/" + ld_scores_dir   # writable tmp, per-run custom LD scores
+        else:
+            ld_scores_dir = fallExampleDir + "/" + ld_scores_dir   
         # First command
         command1 = [
             'python3',
