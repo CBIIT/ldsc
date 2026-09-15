@@ -428,6 +428,8 @@ def run_herit_command(sumstats_file, fileDir, ld_scores_dir, isExample, scale='o
             ld_scores_dir = custom_ld_scores_root + "/" + ld_scores_dir   # writable tmp, per-run custom LD scores
         else:
             ld_scores_dir = fallExampleDir + "/" + ld_scores_dir   
+        if not ld_scores_dir.endswith('/'):
+            ld_scores_dir += '/'
         # First command
         command1 = [
             'python3',
@@ -543,6 +545,9 @@ def run_correlation_command(sumstats_file, sumstats_file2, fileDir, ld_scores_di
             ld_scores_dir = custom_ld_scores_root + "/" + ld_scores_dir   # writable tmp, per-run custom LD scores
         else:
             ld_scores_dir = fallExampleDir + "/" + ld_scores_dir   
+        # Ensure ld_scores_dir has a trailing slash
+        if not ld_scores_dir.endswith('/'):
+            ld_scores_dir += '/'
         # First command
         command1 = [
             'python3',
