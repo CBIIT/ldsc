@@ -707,9 +707,9 @@ class RG(object):
             
             rg = jk.RatioJackknife(
                 rg_ratio, gencov.tot_delete_values, denom_delete_values)
-            self.rg_jknife = float(rg.jknife_est)
-            self.rg_se = float(rg.jknife_se)
-            self.rg_ratio = float(rg_ratio)
+            self.rg_jknife = rg.jknife_est.item()
+            self.rg_se = rg.jknife_se.item()
+            self.rg_ratio = rg_ratio.item()
             self.p, self.z = p_z_norm(self.rg_ratio, self.rg_se)
 
     def summary(self, silly=False):
