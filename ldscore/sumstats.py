@@ -62,7 +62,7 @@ def smart_merge(x, y):
     '''Check if SNP columns are equal. If so, save time by using concat instead of merge.'''
     if len(x) == len(y) and (x.index == y.index).all() and (x.SNP == y.SNP).all():
         x = x.reset_index(drop=True)
-        y = y.reset_index(drop=True).drop('SNP', 1)
+        y = y.reset_index(drop=True).drop(columns='SNP')
         out = pd.concat([x, y], axis=1)
     else:
         out = pd.merge(x, y, how='inner', on='SNP')
